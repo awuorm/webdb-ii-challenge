@@ -2,22 +2,24 @@ const express = require("express");
 const router = express.Router();
 const db = require("./db-config");
 
-router.get("/:id", handleGetCarById);
+router.get("/:id", validateId, validateCar, handleGetCarById);
+router.put("/:id", validateId, validateCar, handleCarPut);
+router.delete("/:id", validateId, validateCar, handleCarDelete);
 router.get("/", handleAllCarsGet);
 router.post("/", handleCarPost);
-router.put("/:id", handleCarPut);
-router.delete("/:id",handleCarDelete);
 
-function handleCarDelete(req,res) {
-    db("cars").where({id:req.params.id}).delete()
+function handleCarDelete(req, res) {
+  db("cars")
+    .where({ id: req.params.id })
+    .delete()
     .then(data => {
-        console.log(data);
-        res.status(200).json(data);
+      console.log(data);
+      res.status(200).json(data);
     })
     .catch(error => {
-        console.log(error);
-        res.status(500).json(error);
-    })
+      console.log(error);
+      res.status(500).json(error);
+    });
 }
 
 function handleCarPut(req, res) {
@@ -64,16 +66,8 @@ function handleCarPost(req, res) {
 }
 
 function handleGetCarById(req, res) {
-  db("cars")
-    .where({ id: req.params.id })
-    .then(data => {
-      res.status(200).json(data);
-      console.table(data);
-    })
-    .catch(error => {
-      res.status(500).json(error);
-      console.log(error);
-    });
+  res.status(200).json(req.car);
+  console.table(req.data);
 }
 
 function handleAllCarsGet(req, res) {
@@ -85,6 +79,38 @@ function handleAllCarsGet(req, res) {
     .catch(error => {
       console.log(error);
       res.status(500).json(error);
+    });
+}
+
+//custom middlewares
+
+function validateId(req, res, next) {
+  const { id } = req.params;
+  if (Number(id)) {
+    next();
+  } else {
+    res.status(400).json({ errorMessage: "please provide a valid Id" });
+  }
+}
+
+function validateCar(req, res, next) {
+  db("cars")
+    .where({ id: req.params.id })
+    .then(data => {
+      if (data.length === 0) {
+        res.status(400).json({
+          errorMessage: "The provided Id does not exist in the database"
+        });
+      } else {
+        req.car = data;
+        next();
+      }
+    })
+    .catch(error => {
+      res.status(5600).json({
+        errorMessage: error.message
+      });
+      console.log(error);
     });
 }
 
